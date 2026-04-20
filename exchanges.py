@@ -59,6 +59,9 @@ def fetch_bithumb_krw_coins() -> list[str]:
 def fetch_binance_usdt_coins() -> list[str]:
     try:
         resp = requests.get(BINANCE_TICKER_URL, timeout=REQUEST_TIMEOUT_SEC)
+        if resp.status_code == 451:
+            logger.warning("바이낸스 접근 차단 (451) — 서버 IP가 지역 제한됨. config.yaml에서 binance를 sell_exchanges에서 제거하세요.")
+            return []
         resp.raise_for_status()
         return [
             item["symbol"].replace(BINANCE_USDT_SUFFIX, "")
@@ -171,6 +174,9 @@ def fetch_binance_prices(coins: list[str]) -> dict[str, float]:
     target_symbols = {f"{coin}{BINANCE_USDT_SUFFIX}" for coin in coins}
     try:
         resp = requests.get(BINANCE_TICKER_24H_URL, timeout=REQUEST_TIMEOUT_SEC)
+        if resp.status_code == 451:
+            logger.warning("바이낸스 접근 차단 (451) — 서버 IP가 지역 제한됨.")
+            return {}
         resp.raise_for_status()
         result = {}
         for item in resp.json():
