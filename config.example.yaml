@@ -1,0 +1,26 @@
+buy_exchanges:           # 한국 거래소 — bithumb, upbit 중 선택
+  - bithumb
+
+sell_exchanges:          # 해외 거래소 — binance, bitget 중 선택
+  - binance
+
+threshold_min: 1.0       # 알림 최소 괴리율 (%) — 이 값 이상이면 알림
+threshold_max: 10.0      # 알림 최대 괴리율 (%) — 이 값 초과하면 이상 시세로 보고 제외 (없애려면 주석 처리)
+
+check_interval_sec: 30   # 가격 조회 간격 (초) — 텔레그램 !시간 명령으로도 변경 가능
+cooldown_sec: 600        # 같은 코인 재알림 최소 간격 (초, 기본 10분)
+skip_first_cycle: true   # 시작 직후 첫 사이클은 알림 없이 기준값만 수집
+
+telegram:
+  bot_token: "여기에_봇토큰_입력"   # BotFather에서 받은 봇 토큰
+  chat_id: "여기에_챗ID_입력"       # 텔레그램 채팅 ID (숫자, 그룹은 -로 시작)
+
+fx:
+  exim_api_key: ""       # 한국수출입은행 API 키 (없으면 무료 폴백 자동 사용)
+  ecos_api_key: ""       # 한국은행 ECOS API 키 (없으면 무료 폴백 자동 사용)
+  cache_minutes: 60      # 환율 캐시 유지 시간 (분)
+
+watch_coins: []          # 특정 코인만 볼 때: [BTC, ETH, SOL] / 전체는 빈 배열 []
+
+sound:
+  enabled: true          # 소리 알림 여부 (Windows 전용, Mac/Linux는 자동 무시)
