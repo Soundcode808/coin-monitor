@@ -17,8 +17,8 @@ UPBIT_CHUNK_SIZE = 100
 
 BITHUMB_TICKER_URL = "https://api.bithumb.com/public/ticker/ALL_KRW"
 
-BINANCE_TICKER_URL = "https://api.binance.com/api/v3/ticker/price"
-BINANCE_TICKER_24H_URL = "https://api.binance.com/api/v3/ticker/24hr"
+BINANCE_TICKER_URL = "https://fapi.binance.com/fapi/v1/ticker/price"
+BINANCE_TICKER_24H_URL = "https://fapi.binance.com/fapi/v1/ticker/24hr"
 BINANCE_USDT_SUFFIX = "USDT"
 
 # 24시간 거래량 최소값 (USDT) — 이 미만이면 사실상 거래 불가로 판단하고 제외
