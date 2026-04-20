@@ -51,11 +51,11 @@ def append_alert_to_csv(row: dict) -> None:
         csv.DictWriter(f, fieldnames=CSV_HEADERS).writerow(row)
 
 
-def calc_divergence(buy_krw: float, sell_krw: float) -> float:
-    """괴리율(%) = (매수가 - 매도환산가) / 매도환산가 × 100. 음수 = 역프리미엄."""
-    if sell_krw == 0:
+def calc_divergence(korean_krw: float, foreign_krw: float) -> float:
+    """괴리율(%) = (한국가 - 해외환산가) / 해외환산가 × 100. 음수 = 역프리미엄."""
+    if foreign_krw == 0:
         return 0.0
-    return (buy_krw - sell_krw) / sell_krw * 100
+    return (korean_krw - foreign_krw) / foreign_krw * 100
 
 
 # 거래소명을 바이낸스(4글자) 기준으로 정렬하기 위한 전각 공백 패딩
@@ -182,7 +182,26 @@ def run_cycle(
         logger.warning("해외 거래소 가격 조회 결과 없음. 다음 사이클에서 재시도합니다.")
         return
 
+    # 쿨다운 10배 이상 지난 항목 정리 (메모리 누수 방지)
+    now = time.time()
+    cooldown_sec = int(config.get("cooldown_sec", 600))
+    stale = [c for c, t in last_alerted.items() if now - t > cooldown_sec * 10]
+    for c in stale:
+        del last_alerted[c]
+
     if is_first:
+        # 베이스라인 수집: 임계치 초과 코인을 미리 last_alerted에 기록해
+        # 두 번째 사이클에서 폭탄 알림이 쏟아지는 것을 방지한다.
+        threshold_min = float(config.get("threshold_min", 1.0))
+        for coin in coins:
+            if coin not in korean_data or coin not in foreign_data:
+                continue
+            kr_lo, _, kr_hi, _ = korean_data[coin]
+            fo_lo, _, fo_hi, _ = foreign_data[coin]
+            div_k = calc_divergence(kr_hi, fo_lo)
+            div_y = calc_divergence(kr_lo, fo_hi)
+            if max(abs(div_k), abs(div_y)) >= threshold_min:
+                last_alerted[coin] = now
         return
 
     ctx = CycleContext(config, notifier, last_alerted)
@@ -206,12 +225,12 @@ def run_cycle(
             korean_krw, korean_ex = kr_lo, kr_lo_ex
             foreign_krw, foreign_ex = fo_hi, fo_hi_ex
 
-        prev_alerted = len(ctx.last_alerted)
+        prev_ts = ctx.last_alerted.get(coin)
         try:
             process_one_coin(coin, korean_krw, korean_ex, foreign_krw, foreign_ex, ctx)
         except Exception as err:
             logger.error("코인 처리 중 오류 (%s): %s", coin, err)
-        if len(ctx.last_alerted) > prev_alerted:
+        if ctx.last_alerted.get(coin) != prev_ts:
             alerted_count += 1
         else:
             skipped_count += 1

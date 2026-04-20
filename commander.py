@@ -5,6 +5,7 @@ commander.py — 텔레그램 명령어 처리 모듈
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 
@@ -99,6 +100,17 @@ class Commander:
         self._config_path = config_path
         self._offset: int = 0
         self._lock = threading.Lock()
+        self._init_offset()
+
+    def _init_offset(self) -> None:
+        """시작 시 최신 메시지 ID로 offset 초기화 — 재시작 시 과거 명령어 재처리 방지."""
+        url = f"https://api.telegram.org/bot{self._bot_token}/getUpdates"
+        try:
+            resp = requests.get(url, params={"offset": -1, "timeout": 0}, timeout=REQUEST_TIMEOUT_SEC)
+            for update in resp.json().get("result", []):
+                self._offset = update["update_id"] + 1
+        except Exception:
+            pass
 
     def _send(self, text: str) -> None:
         url = f"https://api.telegram.org/bot{self._bot_token}/sendMessage"
@@ -116,8 +128,10 @@ class Commander:
             return yaml.safe_load(f)
 
     def _save_config(self, config: dict) -> None:
-        with open(self._config_path, "w", encoding="utf-8") as f:
+        tmp = self._config_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
             yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        os.replace(tmp, self._config_path)  # atomic write — 읽기/쓰기 동시 발생 시 파싱 실패 방지
 
     def _handle_exchange(self, args: list[str], config: dict) -> str:
         if not args:
@@ -328,7 +342,7 @@ class Commander:
                 reply = self._handle_interval(args, config)
             elif cmd == "코인":
                 reply = self._handle_coins(args, config)
-            elif cmd.isascii() and cmd.replace("1", "").isalpha():
+            elif cmd.isascii() and len(cmd) >= 2 and all(ch.isalnum() for ch in cmd) and any(ch.isalpha() for ch in cmd):
                 self._send(self._handle_profit_calc(cmd.upper(), args, config))
                 return
             else:
